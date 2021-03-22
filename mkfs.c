@@ -6,10 +6,10 @@
 #include <assert.h>
 
 #define stat xv6_stat  // avoid clash with host struct stat
-#include "types.h"
-#include "fs.h"
-#include "stat.h"
-#include "param.h"
+#include <kernel/types.h>
+#include <kernel/fs.h>
+#include <kernel/stat.h>
+#include <kernel/param.h>
 
 #ifndef static_assert
 #define static_assert(a, b) do { switch (0) case 0: case (a): ; } while (0)
@@ -68,7 +68,8 @@ int
 main(int argc, char *argv[])
 {
   int i, cc, fd;
-  uint rootino, inum, off;
+  uint rootino, inum, off,
+    usrino;
   struct dirent de;
   char buf[BSIZE];
   struct dinode din;
@@ -127,13 +128,37 @@ main(int argc, char *argv[])
   strcpy(de.name, "..");
   iappend(rootino, &de, sizeof(de));
 
+  usrino = ialloc(T_DIR);
+  bzero(&de, sizeof(de));
+  de.inum = xshort(usrino);
+  strcpy(de.name, "usr");
+  iappend(rootino, &de, sizeof(de));
+
+  bzero(&de, sizeof(de));
+  de.inum = xshort(usrino);
+  strcpy(de.name, ".");
+  iappend(usrino, &de, sizeof(de));
+
+  bzero(&de, sizeof(de));
+  de.inum = xshort(rootino);
+  strcpy(de.name, "..");
+  iappend(usrino, &de, sizeof(de));
+
+  
+
   for(i = 2; i < argc; i++){
-    assert(index(argv[i], '/') == 0);
+    // assert(index(argv[i], '/') == 0);
 
     if((fd = open(argv[i], 0)) < 0){
       perror(argv[i]);
       exit(1);
     }
+
+    if (index(argv[i], '/') > 0) {
+        while(argv[i][0] != '/')
+            argv[i]++;
+    }
+    argv[i]++;
 
     // Skip leading _ in name when writing to file system.
     // The binaries are named _rm, _cat, etc. to keep the
