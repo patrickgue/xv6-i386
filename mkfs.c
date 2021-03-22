@@ -40,6 +40,7 @@ void rinode(uint inum, struct dinode *ip);
 void rsect(uint sec, void *buf);
 uint ialloc(ushort type);
 void iappend(uint inum, void *p, int n);
+int str_index(char *, char c, int n);
 
 // convert to intel byte order
 ushort
@@ -69,10 +70,11 @@ main(int argc, char *argv[])
 {
   int i, cc, fd;
   uint rootino, inum, off,
-    usrino;
+    usrino, current_ino;
   struct dirent de;
   char buf[BSIZE];
   struct dinode din;
+  char path_cpy[64];
 
 
   static_assert(sizeof(int) == 4, "Integers must be 4 bytes!");
@@ -131,7 +133,7 @@ main(int argc, char *argv[])
   usrino = ialloc(T_DIR);
   bzero(&de, sizeof(de));
   de.inum = xshort(usrino);
-  strcpy(de.name, "usr");
+  strcpy(de.name, "bin");
   iappend(rootino, &de, sizeof(de));
 
   bzero(&de, sizeof(de));
@@ -144,22 +146,45 @@ main(int argc, char *argv[])
   strcpy(de.name, "..");
   iappend(usrino, &de, sizeof(de));
 
-  
+
+  printf("rootinode: %d\nbin inode: %d\n", rootino, usrino);
 
   for(i = 2; i < argc; i++){
-    // assert(index(argv[i], '/') == 0);
+    current_ino = rootino;
+
 
     if((fd = open(argv[i], 0)) < 0){
       perror(argv[i]);
       exit(1);
     }
+    
+    if (str_index(argv[i], '/', 32) >= 0)
+    {
 
-    if (index(argv[i], '/') > 0) {
+      printf("Choosing correct inode for %s\n", argv[i]);
+      
+
+      strcpy(path_cpy, argv[i]);
+      path_cpy[str_index(argv[i], '/', 32)] = '\0';
+
+      if (strcmp(path_cpy, "usr.bin") == 0)
+      {
+        current_ino = usrino;
+      }
+
+      
+      printf("path_cpy [%s] [%i]\n", path_cpy, current_ino);
+
+    
+    
+      if (index(argv[i], '/') > 0) {
         while(argv[i][0] != '/')
-            argv[i]++;
-    }
-    argv[i]++;
+          argv[i]++;
+      }
+      argv[i]++;
 
+    }
+    
     // Skip leading _ in name when writing to file system.
     // The binaries are named _rm, _cat, etc. to keep the
     // build operating system from trying to execute them
@@ -172,7 +197,7 @@ main(int argc, char *argv[])
     bzero(&de, sizeof(de));
     de.inum = xshort(inum);
     strncpy(de.name, argv[i], DIRSIZ);
-    iappend(rootino, &de, sizeof(de));
+    iappend(current_ino, &de, sizeof(de));
 
     while((cc = read(fd, buf, sizeof(buf))) > 0)
       iappend(inum, buf, cc);
@@ -319,4 +344,25 @@ iappend(uint inum, void *xp, int n)
   }
   din.size = xint(off);
   winode(inum, &din);
+}
+
+
+int str_index(char *str, char c, int n)
+{
+  int index, len;
+
+  len = strlen(str);
+  if (len < n)
+  {
+    n = len;
+  }
+  
+  for (index = 0; index < n; index++)
+  {
+    if (str[index] == c)
+    {
+      return index;
+    }
+  }
+  return -1;
 }
