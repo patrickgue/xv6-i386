@@ -157,7 +157,7 @@ usr.bin/_forktest: usr.bin/forktest.o $(ULIB)
 	$(OBJDUMP) -S usr.bin/_forktest > usr.bin/forktest.asm
 
 mkfs: mkfs.c include/kernel/fs.h
-	gcc -Werror -Wall -o mkfs mkfs.c -I./include
+	gcc -Werror -Wall -o mkfs mkfs.c
 
 # Prevent deletion of intermediate files, e.g. cat.o, after first build, so
 # that disk image changes after first build are persistent until clean.  More
@@ -178,6 +178,7 @@ UPROGS=\
 	usr.bin/_rm\
 	usr.bin/_sh\
 	usr.bin/_stressfs\
+	usr.bin/_tr\
 	usr.bin/_usertests\
 	usr.bin/_wc\
 	usr.bin/_zombie\
