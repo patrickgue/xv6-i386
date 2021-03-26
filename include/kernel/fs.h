@@ -5,8 +5,9 @@
 #define ROOTINO 1  // root i-number
 #define BSIZE 512  // block size
 
+#ifndef __linux__
 typedef uint ino_t;
-
+#endif
 // Disk layout:
 // [ boot block | super block | log | inode blocks |
 //                                          free bit map | data blocks]
